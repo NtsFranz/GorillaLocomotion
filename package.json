@@ -1,0 +1,23 @@
+{
+  "name": "com.franzco.gorillalocomotion",
+  "displayName": "Gorilla Locomotion (NtsFranz)",
+  "version": "0.1.0",
+  "unity": "2018.1",
+  "description": "A Unity package based on Lemming's Gorilla Tag locomotion system.",
+  "keywords": [
+    "virtual reality",
+    "utilities",
+    "locomotion"
+  ],
+  "author": {
+    "name": "NtsFranz"
+  },
+  "samples": [
+    {
+      "displayName": "Example Scene",
+      "description": "A sample scene ready to go with XR Integration",
+      "path": "Samples~/SampleSceneXR"
+    }
+  ]
+}
+
