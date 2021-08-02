@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace GorillaLocomotion
 {
@@ -20,6 +21,10 @@ namespace GorillaLocomotion
         [Header("Hand Followers (for graphics)")]
         public Transform leftHandFollower;
         public Transform rightHandFollower;
+
+        [Header("Sounds")] 
+        public AudioSource leftHandTouchSource;
+        public AudioSource rightHandTouchSource;
 
         private Vector3 lastLeftHandPosition;
         private Vector3 lastRightHandPosition;
@@ -54,6 +59,16 @@ namespace GorillaLocomotion
         private bool wasLeftHandTouching;
         private bool wasRightHandTouching;
 
+        /// <summary>
+        /// isRight, position, velocity
+        /// </summary>
+        public Action<bool, Vector3, Vector3> HandTouchEnter;
+        /// <summary>
+        /// isRight, position, velocity
+        /// </summary>
+        public Action<bool, Vector3, Vector3> HandTouchExit;
+        
+
         public bool disableMovement = false;
 
         private void Awake()
@@ -67,6 +82,27 @@ namespace GorillaLocomotion
                 _instance = this;
             }
             InitializeValues();
+
+            HandTouchEnter += (isRight, position, velocity) =>
+            {
+                Debug.Log(velocity.magnitude);
+                if (velocity.magnitude < .00001f) return;
+                
+                if (isRight)
+                {
+                    if (rightHandTouchSource != null)
+                    {
+                        rightHandTouchSource.Play();
+                    }
+                }
+                else
+                {
+                    if (leftHandTouchSource != null)
+                    {
+                        leftHandTouchSource.Play();   
+                    }
+                }
+            };
         }
 
         public void InitializeValues()
@@ -123,7 +159,7 @@ namespace GorillaLocomotion
 
             //left hand
 
-            Vector3 distanceTraveled = CurrentLeftHandPosition() - lastLeftHandPosition + Vector3.down * 2f * 9.8f * Time.deltaTime * Time.deltaTime;
+            Vector3 distanceTraveled = CurrentLeftHandPosition() - lastLeftHandPosition + Vector3.down * (2f * 9.8f * Time.deltaTime * Time.deltaTime);
 
             if (IterativeCollisionSphereCast(lastLeftHandPosition, minimumRaycastDistance, distanceTraveled, defaultPrecision, out finalPosition, true))
             {
@@ -143,7 +179,7 @@ namespace GorillaLocomotion
 
             //right hand
 
-            distanceTraveled = CurrentRightHandPosition() - lastRightHandPosition + Vector3.down * 2f * 9.8f * Time.deltaTime * Time.deltaTime;
+            distanceTraveled = CurrentRightHandPosition() - lastRightHandPosition + Vector3.down * (2f * 9.8f * Time.deltaTime * Time.deltaTime);
 
             if (IterativeCollisionSphereCast(lastRightHandPosition, minimumRaycastDistance, distanceTraveled, defaultPrecision, out finalPosition, true))
             {
@@ -198,8 +234,12 @@ namespace GorillaLocomotion
 
             if (IterativeCollisionSphereCast(lastLeftHandPosition, minimumRaycastDistance, distanceTraveled, defaultPrecision, out finalPosition, !((leftHandColliding || wasLeftHandTouching) && (rightHandColliding || wasRightHandTouching))))
             {
-                lastLeftHandPosition = finalPosition;
                 leftHandColliding = true;
+                if (!wasLeftHandTouching)
+                {
+                    HandTouchEnter?.Invoke(false, CurrentLeftHandPosition(), distanceTraveled * Time.deltaTime);
+                }
+                lastLeftHandPosition = finalPosition;
             }
             else
             {
@@ -212,8 +252,12 @@ namespace GorillaLocomotion
 
             if (IterativeCollisionSphereCast(lastRightHandPosition, minimumRaycastDistance, distanceTraveled, defaultPrecision, out finalPosition, !((leftHandColliding || wasLeftHandTouching) && (rightHandColliding || wasRightHandTouching))))
             {
-                lastRightHandPosition = finalPosition;
                 rightHandColliding = true;
+                if (!wasRightHandTouching)
+                {
+                    HandTouchEnter?.Invoke(true, CurrentRightHandPosition(), distanceTraveled * Time.deltaTime);
+                }
+                lastRightHandPosition = finalPosition;
             }
             else
             {
@@ -243,6 +287,7 @@ namespace GorillaLocomotion
             {
                 lastLeftHandPosition = CurrentLeftHandPosition();
                 leftHandColliding = false;
+                HandTouchExit?.Invoke(false, CurrentLeftHandPosition(), (CurrentLeftHandPosition() - lastLeftHandPosition) * Time.deltaTime);
             }
 
             //check to see if right hand is stuck and we should unstick it
@@ -251,6 +296,7 @@ namespace GorillaLocomotion
             {
                 lastRightHandPosition = CurrentRightHandPosition();
                 rightHandColliding = false;
+                HandTouchExit?.Invoke(true, CurrentRightHandPosition(), (CurrentRightHandPosition() - lastRightHandPosition) * Time.deltaTime);
             }
 
             // update the hand followers for visual output
@@ -262,6 +308,9 @@ namespace GorillaLocomotion
             {
                 rightHandFollower.position = lastRightHandPosition;   
             }
+
+
+            
 
             wasLeftHandTouching = leftHandColliding;
             wasRightHandTouching = rightHandColliding;
