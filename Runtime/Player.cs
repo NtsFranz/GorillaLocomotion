@@ -58,6 +58,8 @@ namespace GorillaLocomotion
 
         private bool wasLeftHandTouching;
         private bool wasRightHandTouching;
+        private float leftHandLastTouchTime;
+        private float rightHandLastTouchTime;
 
         /// <summary>
         /// isRight, position, velocity
@@ -85,8 +87,7 @@ namespace GorillaLocomotion
 
             HandTouchEnter += (isRight, position, velocity) =>
             {
-                Debug.Log(velocity.magnitude);
-                if (velocity.magnitude < .00001f) return;
+                // Debug.Log(velocity.magnitude);
                 
                 if (isRight)
                 {
@@ -171,6 +172,12 @@ namespace GorillaLocomotion
                 else
                 {
                     firstIterationLeftHand = finalPosition - CurrentLeftHandPosition();
+                    Vector3 velocity = distanceTraveled * Time.deltaTime; 
+                    if (velocity.magnitude > .0001f && Time.time - leftHandLastTouchTime > .2f)
+                    {
+                        HandTouchEnter?.Invoke(false, CurrentLeftHandPosition(), velocity);
+                        leftHandLastTouchTime = Time.time;
+                    }
                 }
                 playerRigidBody.velocity = Vector3.zero;
 
@@ -190,6 +197,12 @@ namespace GorillaLocomotion
                 else
                 {
                     firstIterationRightHand = finalPosition - CurrentRightHandPosition();
+                    Vector3 velocity = distanceTraveled * Time.deltaTime;
+                    if (velocity.magnitude > .0001f && Time.time - rightHandLastTouchTime > .2f)
+                    {
+                        HandTouchEnter?.Invoke(true, CurrentRightHandPosition(), distanceTraveled * Time.deltaTime);
+                        rightHandLastTouchTime = Time.time;
+                    }
                 }
 
                 playerRigidBody.velocity = Vector3.zero;
@@ -235,10 +248,6 @@ namespace GorillaLocomotion
             if (IterativeCollisionSphereCast(lastLeftHandPosition, minimumRaycastDistance, distanceTraveled, defaultPrecision, out finalPosition, !((leftHandColliding || wasLeftHandTouching) && (rightHandColliding || wasRightHandTouching))))
             {
                 leftHandColliding = true;
-                if (!wasLeftHandTouching)
-                {
-                    HandTouchEnter?.Invoke(false, CurrentLeftHandPosition(), distanceTraveled * Time.deltaTime);
-                }
                 lastLeftHandPosition = finalPosition;
             }
             else
@@ -253,10 +262,6 @@ namespace GorillaLocomotion
             if (IterativeCollisionSphereCast(lastRightHandPosition, minimumRaycastDistance, distanceTraveled, defaultPrecision, out finalPosition, !((leftHandColliding || wasLeftHandTouching) && (rightHandColliding || wasRightHandTouching))))
             {
                 rightHandColliding = true;
-                if (!wasRightHandTouching)
-                {
-                    HandTouchEnter?.Invoke(true, CurrentRightHandPosition(), distanceTraveled * Time.deltaTime);
-                }
                 lastRightHandPosition = finalPosition;
             }
             else
